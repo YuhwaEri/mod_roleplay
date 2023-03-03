@@ -1,0 +1,2 @@
+roleplayactivityname,mod_roleplay
+roleplaycloseson,mod_roleplay

@@ -1,0 +1,10 @@
+.show-comment {
+	cursor: pointer;
+	color: #555;
+}
+
+textarea.answer-comment, textarea.answer-comment:focus {
+	background-color: #fbeab8;
+	height: 100px;
+	width: 50%;
+}
