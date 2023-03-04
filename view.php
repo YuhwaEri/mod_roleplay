@@ -110,7 +110,7 @@ if ($notify and confirm_sesskey()) {
 }
 
 
-if (!$roleplayavailable) {
+if (!$roleplayavailable and !$notify) {
     $reason = current(array_keys($warnings));
     echo $OUTPUT->notification(get_string($reason, 'roleplay'), 'warning');
 }
