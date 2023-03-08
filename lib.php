@@ -133,6 +133,9 @@ function roleplay_add_instance($roleplay) {
             if (isset($roleplay->limit[$key])) {
                 $option->maxanswers = $roleplay->limit[$key];
             }
+            if (isset($roleplay->description[$key])) {
+                $option->description = $roleplay->description[$key];
+            }
             $option->timemodified = time();
             $DB->insert_record("roleplay_options", $option);
         }
@@ -172,6 +175,9 @@ function roleplay_update_instance($roleplay) {
         $option->roleplayid = $roleplay->id;
         if (isset($roleplay->limit[$key])) {
             $option->maxanswers = $roleplay->limit[$key];
+        }
+        if (isset($roleplay->description[$key])) {
+            $option->description = $roleplay->description[$key];
         }
         $option->timemodified = time();
         if (isset($roleplay->optionid[$key]) && !empty($roleplay->optionid[$key])){//existing roleplay record
@@ -223,6 +229,7 @@ function roleplay_prepare_options($roleplay, $user, $coursemodule, $allresponses
             $option->attributes->value = $optionid;
             $option->text = format_string($text);
             $option->maxanswers = $roleplay->maxanswers[$optionid];
+            $option->description = $roleplay->description[$optionid];
             $option->displaylayout = $roleplay->display;
 
             if (isset($allresponses[$optionid])) {
@@ -682,6 +689,7 @@ function roleplay_get_roleplay($roleplayid) {
             foreach ($options as $option) {
                 $roleplay->option[$option->id] = $option->text;
                 $roleplay->maxanswers[$option->id] = $option->maxanswers;
+                $roleplay->description[$option->id] = $option->description;
             }
             return $roleplay;
         }
@@ -960,6 +968,7 @@ function roleplay_get_my_response($roleplay) {
     return roleplay_get_user_response($roleplay, $USER->id);
 }
 
+
 /**
  * Check if responses from user's groups have been posted.
  *
@@ -994,7 +1003,6 @@ function roleplay_group_responses_exist($roleplay) {
 
     return $exists;
 }
-
 
 /**
  * Get all the responses on a given roleplay.

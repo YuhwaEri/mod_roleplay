@@ -265,7 +265,10 @@
     }
     $results = prepare_roleplay_show_results($roleplay, $course, $cm, $users);
     $renderer = $PAGE->get_renderer('mod_roleplay');
-    echo $renderer->display_result($results, true);
+
+    $g = optional_param('g', 1, PARAM_INT);
+    $displaygroups = $g ? groups_get_all_groups($course->id, 0, 0, 'g.*', true) : null;
+    echo $renderer->display_result($results, true, $displaygroups);
 
    //now give links for downloading spreadsheets.
     if (!empty($users) && has_capability('mod/roleplay:downloadresponses',$context)) {

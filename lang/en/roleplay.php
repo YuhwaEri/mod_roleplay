@@ -160,5 +160,6 @@ $string['roleplaycloseson'] = 'Roleplay closes on {$a}';
 
 $string['allowcomment'] = 'Allow comment';
 $string['oneresponsepergroup'] = 'One response per group';
-$string['commentlabel'] = 'Comment';
+$string['commentlabel'] = 'Please enter a summary of your discussion points.';
 $string['groupalreadyhasresponses'] = 'Response from your group has already been submitted, only one response is allowed from the same group.';
+$string['descriptionno'] = 'Description {no}';

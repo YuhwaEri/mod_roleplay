@@ -49,6 +49,7 @@ class mod_roleplay_mod_form extends moodleform_mod {
 
         $repeatarray = array();
         $repeatarray[] = $mform->createElement('text', 'option', get_string('optionno', 'roleplay'));
+        $repeatarray[] = $mform->createElement('text', 'description', get_string('descriptionno', 'roleplay'));
         $repeatarray[] = $mform->createElement('text', 'limit', get_string('limitno', 'roleplay'));
         $repeatarray[] = $mform->createElement('hidden', 'optionid', 0);
 
@@ -110,22 +111,25 @@ class mod_roleplay_mod_form extends moodleform_mod {
     }
 
     function data_preprocessing(&$default_values){
-        global $DB;
-        if (!empty($this->_instance) && ($options = $DB->get_records_menu('roleplay_options',array('roleplayid'=>$this->_instance), 'id', 'id,text'))
-               && ($options2 = $DB->get_records_menu('roleplay_options', array('roleplayid'=>$this->_instance), 'id', 'id,maxanswers')) ) {
-            $roleplayids=array_keys($options);
-            $options=array_values($options);
-            $options2=array_values($options2);
+            global $DB;
+            if (!empty($this->_instance) && ($options = $DB->get_records_menu('roleplay_options',array('roleplayid'=>$this->_instance), 'id', 'id,text,description'))
+                   && ($options2 = $DB->get_records_menu('roleplay_options', array('roleplayid'=>$this->_instance), 'id', 'id,maxanswers'))
+                   && ($options3 = $DB->get_records_menu('roleplay_options', array('roleplayid'=>$this->_instance), 'id', 'id,description'))) {
+                $roleplayids=array_keys($options);
+                $options=array_values($options);
+                $options2=array_values($options2);
+                $options3=array_values($options3);
 
-            foreach (array_keys($options) as $key){
-                $default_values['option['.$key.']'] = $options[$key];
-                $default_values['limit['.$key.']'] = $options2[$key];
-                $default_values['optionid['.$key.']'] = $roleplayids[$key];
+                foreach (array_keys($options) as $key){
+                    $default_values['option['.$key.']'] = $options[$key];
+                    $default_values['description['.$key.']'] = $options3[$key];
+                    $default_values['limit['.$key.']'] = $options2[$key];
+                    $default_values['optionid['.$key.']'] = $roleplayids[$key];
+                }
+
             }
 
         }
-
-    }
 
     /**
      * Allows module to modify the data returned by form get_data().

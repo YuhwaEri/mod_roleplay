@@ -50,7 +50,7 @@ class mod_roleplay_renderer extends plugin_renderer_base {
         $roleplaycount = 0;
         foreach ($options['options'] as $option) {
             $roleplaycount++;
-            $html .= html_writer::start_tag('li', array('class'=>'option'));
+            $html .= html_writer::start_tag('li', array('class'=>'option mb-3'));
             if ($multiple) {
                 $option->attributes->name = 'answer[]';
                 $option->attributes->type = 'checkbox';
@@ -68,7 +68,10 @@ class mod_roleplay_renderer extends plugin_renderer_base {
             }
 
             $html .= html_writer::empty_tag('input', (array)$option->attributes + $disabled);
-            $html .= html_writer::tag('label', $labeltext, array('for'=>$option->attributes->id));
+            $html .= html_writer::start_tag('label', array('for'=>$option->attributes->id, 'class' => 'bold mb-0', 'style' => 'vertical-align:top'));
+            $html .= $labeltext;
+            $html .= html_writer::tag('div', $option->description, array('class' => 'small optiondescription'));
+            $html .= html_writer::end_tag('label');
             $html .= html_writer::end_tag('li');
         }
 
@@ -121,18 +124,194 @@ class mod_roleplay_renderer extends plugin_renderer_base {
      * @param bool $forcepublish
      * @return string
      */
-    public function display_result($roleplays, $forcepublish = false) {
-        if (empty($forcepublish)) { //allow the publish setting to be overridden
+    public function display_result($roleplays, $forcepublish = false, $usergroups = null) {
+        if (empty($forcepublish)) {
             $forcepublish = $roleplays->publish;
         }
 
         $displaylayout = $roleplays->display;
 
-        if ($forcepublish) {  //ROLEPLAY_PUBLISH_NAMES
+        if ($forcepublish) {
+            if ($usergroups) {
+                return $this->display_publish_with_groups($roleplays, $usergroups);
+            }
             return $this->display_publish_name_vertical($roleplays);
         } else {
             return $this->display_publish_anonymous($roleplays, $displaylayout);
         }
+    }
+
+    /**
+     * Returns HTML to display roleplays result
+     * New layout for mod_roleplay - with groups
+     * @param object $roleplays
+     * @return string
+     */
+    public function display_publish_with_groups($roleplays, $usergroups) {
+        global $PAGE, $OUTPUT;
+        $PAGE->requires->js_call_amd('mod_roleplay/comment', 'init');
+        $html ='';
+        $html .= html_writer::tag('h3',format_string(get_string("responses", "roleplay")));
+
+        $attributes = array('method'=>'POST');
+        $attributes['action'] = new moodle_url($PAGE->url);
+        $attributes['id'] = 'attemptsform';
+
+        if ($roleplays->viewresponsecapability) {
+            $html .= html_writer::start_tag('form', $attributes);
+            $html .= html_writer::empty_tag('input', array('type'=>'hidden', 'name'=>'id', 'value'=> $roleplays->coursemoduleid));
+            $html .= html_writer::empty_tag('input', array('type'=>'hidden', 'name'=>'sesskey', 'value'=> sesskey()));
+            $html .= html_writer::empty_tag('input', array('type'=>'hidden', 'name'=>'mode', 'value'=>'overview'));
+        }
+
+        $table = new html_table();
+        $table->cellpadding = 0;
+        $table->cellspacing = 0;
+        $table->attributes['class'] = 'results names table table-bordered table-striped';
+        $table->tablealign = 'center';
+        $table->summary = get_string('responsesto', 'roleplay', format_string($roleplays->name));
+        $table->data = array();
+
+        $count = 0;
+        ksort($roleplays->options);
+
+        $columns = array();
+        $celldefault = new html_table_cell();
+        $celldefault->attributes['class'] = 'data';
+
+        // This extra cell is needed in order to support accessibility for screenreader. MDL-30816
+        $accessiblecell = new html_table_cell();
+        $accessiblecell->scope = 'row';
+        $accessiblecell->text = '';
+        $accessiblecell->style = "background-color:#337db8;color:white";
+        $columns['groups'][] = $accessiblecell;
+
+        $groupsnames = [];
+        $columnusers = [];
+
+        foreach ($usergroups as $gid => $g) {
+            $cellgroup = clone($celldefault);
+
+            $celltext = '';
+            if ($roleplays->showunanswered && $gid == 0) {
+                $celltext = get_string('nogroup', 'roleplay');
+            } else if ($gid > 0) {
+                $celltext = format_string($g->name);
+            }
+
+            $cellgroup->text = $celltext;
+            $cellgroup->style = "background-color:#337db8;color:white;text-align:center;font-size:1.2em";
+            $groupsnames[$gid] = $celltext;
+
+            $columns['groups'][] = $cellgroup;
+            $columnusers[] = $g->members;
+        }
+
+        $table->head = $columns['groups'];
+
+        $columns = array();
+
+        foreach ($roleplays->options as $optionid => $options) {
+            $columns = [];
+            $cell = new html_table_cell();
+            $cell->attributes['class'] = 'header data';
+            $cell->text = $options->text;
+            $cell->header = true;
+            $cell->scope = 'row';
+            $columns[] = $cell;
+
+            foreach ($columnusers as $col_i => $col_members) {
+
+                $cell = new html_table_cell();
+                $cell->attributes['class'] = 'data';
+
+                if ($roleplays->showunanswered || $optionid > 0) {
+                    if (!empty($options->user)) {
+                        $optionusers = '';
+                        foreach ($options->user as $user) {
+                            if (!in_array($user->id, $col_members)) continue;
+                            if (empty($user->imagealt)) {
+                                $user->imagealt = '';
+                            }
+
+                            $userfullname = fullname($user, $roleplays->fullnamecapability);
+                            $checkbox = '';
+                            if ($roleplays->viewresponsecapability && $roleplays->deleterepsonsecapability) {
+                                $checkboxid = 'attempt-user' . $user->id . '-option' . $optionid;
+                                if ($optionid > 0) {
+                                    $checkboxname = 'attemptid[]';
+                                    $checkboxvalue = $user->answerid;
+                                } else {
+                                    $checkboxname = 'userid[]';
+                                    $checkboxvalue = $user->id;
+                                }
+
+                                $togglegroup = 'responses response-option-' . $optionid;
+                                $slavecheckbox = new \core\output\checkbox_toggleall($togglegroup, false, [
+                                    'id' => $checkboxid,
+                                    'name' => $checkboxname,
+                                    'classes' => 'mr-1',
+                                    'value' => $checkboxvalue,
+                                    'label' => $userfullname . ' ' . $options->text,
+                                    'labelclasses' => 'accesshide',
+                                ]);
+                                $checkbox = $OUTPUT->render($slavecheckbox);
+                            }
+                            $userimage = $this->output->user_picture($user, array('courseid' => $roleplays->courseid, 'link' => false));
+                            $profileurl = new moodle_url('/user/view.php', array('id' => $user->id, 'course' => $roleplays->courseid));
+                            $profilelink = html_writer::link($profileurl, $userimage . $userfullname);
+                            $commentlink = $user->comment ? ' <i class="fa fa-commenting-o ml-2 show-comment" data-comment="'.$user->comment.'" data-comment-title="'.$userfullname.'" title="Show comment"></i>' : '';
+                            $optionusers .= html_writer::div($checkbox . $profilelink . $commentlink, 'mb-1');
+
+                        }
+                        $cell->text = $optionusers;
+                    }
+                }
+                $columns[] = $cell;
+            }
+            $row = new html_table_row($columns);
+            $table->data[] = $row;
+            $count++;
+        }
+
+        $html .= html_writer::tag('div', html_writer::table($table), array('class'=>'response'));
+
+        $actiondata = '';
+        if ($roleplays->viewresponsecapability && $roleplays->deleterepsonsecapability) {
+            // Build the select/deselect all for all of options.
+            $selectallid = 'select-all-responses';
+            $togglegroup = 'responses';
+            $selectallcheckbox = new \core\output\checkbox_toggleall($togglegroup, true, [
+                'id' => $selectallid,
+                'name' => $selectallid,
+                'value' => 1,
+                'label' => get_string('selectall'),
+                'classes' => 'btn-secondary mr-1'
+            ], true);
+            $actiondata .= $OUTPUT->render($selectallcheckbox);
+
+            $actionurl = new moodle_url($PAGE->url, array('sesskey'=>sesskey(), 'action'=>'delete_confirmation()'));
+            $actionoptions = array('delete' => get_string('delete'));
+            $selectattributes = [
+                'data-action' => 'toggle',
+                'data-togglegroup' => 'responses',
+                'data-toggle' => 'action',
+            ];
+            $selectnothing = ['' => get_string('chooseaction', 'roleplay')];
+            $select = new single_select($actionurl, 'action', $actionoptions, null, $selectnothing, 'attemptsform');
+            $select->set_label(get_string('withselected', 'roleplay'));
+            $select->disabled = true;
+            $select->attributes = $selectattributes;
+
+            $actiondata .= $this->output->render($select);
+        }
+        $html .= html_writer::tag('div', $actiondata, array('class'=>'responseaction'));
+
+        if ($roleplays->viewresponsecapability) {
+            $html .= html_writer::end_tag('form');
+        }
+
+        return $html;
     }
 
     /**
