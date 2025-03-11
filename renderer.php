@@ -34,7 +34,7 @@ class mod_roleplay_renderer extends plugin_renderer_base {
      * @param bool $vertical
      * @return string
      */
-    public function display_options($options, $coursemoduleid, $vertical = false, $multiple = false, $allowcomment = false) {
+    public function display_options($options, $coursemoduleid, $vertical = false, $multiple = false, $allowcomment = false,$allowoptiondesc = false) {
         $layoutclass = 'horizontal';
         if ($vertical) {
             $layoutclass = 'vertical';
@@ -50,7 +50,7 @@ class mod_roleplay_renderer extends plugin_renderer_base {
         $roleplaycount = 0;
         foreach ($options['options'] as $option) {
             $roleplaycount++;
-            $html .= html_writer::start_tag('li', array('class'=>'option mb-3'));
+            $html .= html_writer::start_tag('li', array('class' => 'option mb-3'));
             if ($multiple) {
                 $option->attributes->name = 'answer[]';
                 $option->attributes->type = 'checkbox';
@@ -58,8 +58,8 @@ class mod_roleplay_renderer extends plugin_renderer_base {
                 $option->attributes->name = 'answer';
                 $option->attributes->type = 'radio';
             }
-            $option->attributes->id = 'roleplay_'.$roleplaycount;
-            $option->attributes->class = 'mx-1';
+            $option->attributes->id = 'roleplay_' . $roleplaycount;
+            $option->attributes->class = 'm-x-1';
 
             $labeltext = $option->text;
             if (!empty($option->attributes->disabled)) {
@@ -68,20 +68,22 @@ class mod_roleplay_renderer extends plugin_renderer_base {
             }
 
             $html .= html_writer::empty_tag('input', (array)$option->attributes + $disabled);
-            $html .= html_writer::start_tag('label', array('for'=>$option->attributes->id, 'class' => 'bold mb-0', 'style' => 'vertical-align:top'));
+            $html .= html_writer::start_tag('label', array('for' => $option->attributes->id, 'class' => 'bold mb-0', 'style' => 'vertical-align:top'));
             $html .= $labeltext;
-            $html .= html_writer::tag('div', $option->description, array('class' => 'small optiondescription'));
+            if ($allowoptiondesc){
+                $html .= html_writer::tag('div', $option->option_desc, array('class' => 'small optiondescription'));
+            }
             $html .= html_writer::end_tag('label');
             $html .= html_writer::end_tag('li');
         }
 
         if ($allowcomment) {
             $html .= html_writer::start_tag('li', array('class'=>'option'));
-            // $html .= html_writer::tag('label', get_string('commentlabel', 'roleplay'));
             $html .= html_writer::start_tag('textarea', array('class'=>'form-control answer-comment', 'name'=>'answer_comment', 'placeholder'=>get_string('commentlabel', 'roleplay')));
             $html .= html_writer::end_tag('textarea');
             $html .= html_writer::end_tag('li');
         }
+
 
         $html .= html_writer::tag('li','', array('class'=>'clearfloat'));
         $html .= html_writer::end_tag('ul');
@@ -104,8 +106,8 @@ class mod_roleplay_renderer extends plugin_renderer_base {
 
                 if (!empty($options['allowupdate']) && ($options['allowupdate'])) {
                     $url = new moodle_url('view.php',
-                            array('id' => $coursemoduleid, 'action' => 'delroleplay', 'sesskey' => sesskey()));
-                    $html .= html_writer::link($url, get_string('removemyroleplay', 'roleplay'), array('class' => 'ml-1'));
+                        array('id' => $coursemoduleid, 'action' => 'delroleplay', 'sesskey' => sesskey()));
+                    $html .= html_writer::link($url, get_string('removemyroleplay', 'roleplay'), array('class' => 'm-l-1'));
                 }
             } else {
                 $html .= html_writer::tag('label', get_string('havetologin', 'roleplay'));
@@ -118,6 +120,7 @@ class mod_roleplay_renderer extends plugin_renderer_base {
         return $html;
     }
 
+
     /**
      * Returns HTML to display roleplays result
      * @param object $roleplays
@@ -125,13 +128,13 @@ class mod_roleplay_renderer extends plugin_renderer_base {
      * @return string
      */
     public function display_result($roleplays, $forcepublish = false, $usergroups = null) {
-        if (empty($forcepublish)) {
+        if (empty($forcepublish)) { //allow the publish setting to be overridden
             $forcepublish = $roleplays->publish;
         }
 
         $displaylayout = $roleplays->display;
 
-        if ($forcepublish) {
+        if ($forcepublish) {  //ROLEPLAY_PUBLISH_NAMES
             if ($usergroups) {
                 return $this->display_publish_with_groups($roleplays, $usergroups);
             }
@@ -148,7 +151,7 @@ class mod_roleplay_renderer extends plugin_renderer_base {
      * @return string
      */
     public function display_publish_with_groups($roleplays, $usergroups) {
-        global $PAGE, $OUTPUT;
+        global $PAGE;
         $PAGE->requires->js_call_amd('mod_roleplay/comment', 'init');
         $html ='';
         $html .= html_writer::tag('h3',format_string(get_string("responses", "roleplay")));
@@ -238,6 +241,8 @@ class mod_roleplay_renderer extends plugin_renderer_base {
                             $checkbox = '';
                             if ($roleplays->viewresponsecapability && $roleplays->deleterepsonsecapability) {
                                 $checkboxid = 'attempt-user' . $user->id . '-option' . $optionid;
+                                $checkbox .= html_writer::label($userfullname . ' ' . 123,
+                                    $checkboxid, false, array('class' => 'accesshide'));
                                 if ($optionid > 0) {
                                     $checkboxname = 'attemptid[]';
                                     $checkboxvalue = $user->answerid;
@@ -245,17 +250,8 @@ class mod_roleplay_renderer extends plugin_renderer_base {
                                     $checkboxname = 'userid[]';
                                     $checkboxvalue = $user->id;
                                 }
-
-                                $togglegroup = 'responses response-option-' . $optionid;
-                                $slavecheckbox = new \core\output\checkbox_toggleall($togglegroup, false, [
-                                    'id' => $checkboxid,
-                                    'name' => $checkboxname,
-                                    'classes' => 'mr-1',
-                                    'value' => $checkboxvalue,
-                                    'label' => $userfullname . ' ' . $options->text,
-                                    'labelclasses' => 'accesshide',
-                                ]);
-                                $checkbox = $OUTPUT->render($slavecheckbox);
+                                $checkbox .= html_writer::checkbox($checkboxname, $checkboxvalue, '', null,
+                                    array('id' => $checkboxid, 'class' => 'm-r-1'));
                             }
                             $userimage = $this->output->user_picture($user, array('courseid' => $roleplays->courseid, 'link' => false));
                             $profileurl = new moodle_url('/user/view.php', array('id' => $user->id, 'course' => $roleplays->courseid));
@@ -278,30 +274,30 @@ class mod_roleplay_renderer extends plugin_renderer_base {
 
         $actiondata = '';
         if ($roleplays->viewresponsecapability && $roleplays->deleterepsonsecapability) {
-            // Build the select/deselect all for all of options.
-            $selectallid = 'select-all-responses';
-            $togglegroup = 'responses';
-            $selectallcheckbox = new \core\output\checkbox_toggleall($togglegroup, true, [
-                'id' => $selectallid,
-                'name' => $selectallid,
-                'value' => 1,
-                'label' => get_string('selectall'),
-                'classes' => 'btn-secondary mr-1'
-            ], true);
-            $actiondata .= $OUTPUT->render($selectallcheckbox);
+            $selecturl = new moodle_url('#');
+
+            $actiondata .= html_writer::start_div('selectallnone');
+            $actiondata .= html_writer::link($selecturl, get_string('selectall'), ['data-select-info' => true]) . ' / ';
+
+            $actiondata .= html_writer::link($selecturl, get_string('deselectall'), ['data-select-info' => false]);
+
+            $actiondata .= html_writer::end_div();
 
             $actionurl = new moodle_url($PAGE->url, array('sesskey'=>sesskey(), 'action'=>'delete_confirmation()'));
             $actionoptions = array('delete' => get_string('delete'));
-            $selectattributes = [
-                'data-action' => 'toggle',
-                'data-togglegroup' => 'responses',
-                'data-toggle' => 'action',
-            ];
-            $selectnothing = ['' => get_string('chooseaction', 'roleplay')];
-            $select = new single_select($actionurl, 'action', $actionoptions, null, $selectnothing, 'attemptsform');
+
+            // isn't needed
+            // foreach ($roleplays->options as $optionid => $option) {
+            //     if ($optionid > 0) {
+            //         $actionoptions['choose_'.$optionid] = get_string('chooseoption', 'roleplay', $option->text);
+            //     }
+            // }
+
+            $select = new single_select($actionurl, 'action', $actionoptions, null,
+                array('' => get_string('chooseaction', 'roleplay')), 'attemptsform');
             $select->set_label(get_string('withselected', 'roleplay'));
-            $select->disabled = true;
-            $select->attributes = $selectattributes;
+
+            $PAGE->requires->js_call_amd('mod_roleplay/select_all_choices', 'init');
 
             $actiondata .= $this->output->render($select);
         }
@@ -321,7 +317,7 @@ class mod_roleplay_renderer extends plugin_renderer_base {
      * @return string
      */
     public function display_publish_name_vertical($roleplays) {
-        global $PAGE, $OUTPUT;
+        global $PAGE;
         $PAGE->requires->js_call_amd('mod_roleplay/comment', 'init');
         $html ='';
         $html .= html_writer::tag('h3',format_string(get_string("responses", "roleplay")));
@@ -368,42 +364,22 @@ class mod_roleplay_renderer extends plugin_renderer_base {
         foreach ($roleplays->options as $optionid => $options) {
             $celloption = clone($celldefault);
             $cellusernumber = clone($celldefault);
+            $cellusernumber->style = 'text-align: center;';
 
+            $celltext = '';
             if ($roleplays->showunanswered && $optionid == 0) {
-                $headertitle = get_string('notanswered', 'roleplay');
+                $celltext = get_string('notanswered', 'roleplay');
             } else if ($optionid > 0) {
-                $headertitle = format_string($roleplays->options[$optionid]->text);
-            }
-            $celltext = $headertitle;
-
-            // Render select/deselect all checkbox for this option.
-            if ($roleplays->viewresponsecapability && $roleplays->deleterepsonsecapability) {
-
-                // Build the select/deselect all for this option.
-                $selectallid = 'select-response-option-' . $optionid;
-                $togglegroup = 'responses response-option-' . $optionid;
-                $selectalltext = get_string('selectalloption', 'roleplay', $headertitle);
-                $deselectalltext = get_string('deselectalloption', 'roleplay', $headertitle);
-                $mastercheckbox = new \core\output\checkbox_toggleall($togglegroup, true, [
-                    'id' => $selectallid,
-                    'name' => $selectallid,
-                    'value' => 1,
-                    'selectall' => $selectalltext,
-                    'deselectall' => $deselectalltext,
-                    'label' => $selectalltext,
-                    'labelclasses' => 'accesshide',
-                ]);
-
-                $celltext .= html_writer::div($OUTPUT->render($mastercheckbox));
+                $celltext = format_string($roleplays->options[$optionid]->text);
             }
             $numberofuser = 0;
             if (!empty($options->user) && count($options->user) > 0) {
                 $numberofuser = count($options->user);
             }
 
-            $celloption->text = html_writer::div($celltext, 'text-center');
+            $celloption->text = $celltext;
             $optionsnames[$optionid] = $celltext;
-            $cellusernumber->text = html_writer::div($numberofuser, 'text-center');
+            $cellusernumber->text = $numberofuser;
 
             $columns['options'][] = $celloption;
             $columns['usernumber'][] = $cellusernumber;
@@ -439,6 +415,8 @@ class mod_roleplay_renderer extends plugin_renderer_base {
                         $checkbox = '';
                         if ($roleplays->viewresponsecapability && $roleplays->deleterepsonsecapability) {
                             $checkboxid = 'attempt-user' . $user->id . '-option' . $optionid;
+                            $checkbox .= html_writer::label($userfullname . ' ' . $optionsnames[$optionid],
+                                $checkboxid, false, array('class' => 'accesshide'));
                             if ($optionid > 0) {
                                 $checkboxname = 'attemptid[]';
                                 $checkboxvalue = $user->answerid;
@@ -446,17 +424,8 @@ class mod_roleplay_renderer extends plugin_renderer_base {
                                 $checkboxname = 'userid[]';
                                 $checkboxvalue = $user->id;
                             }
-
-                            $togglegroup = 'responses response-option-' . $optionid;
-                            $slavecheckbox = new \core\output\checkbox_toggleall($togglegroup, false, [
-                                'id' => $checkboxid,
-                                'name' => $checkboxname,
-                                'classes' => 'mr-1',
-                                'value' => $checkboxvalue,
-                                'label' => $userfullname . ' ' . $options->text,
-                                'labelclasses' => 'accesshide',
-                            ]);
-                            $checkbox = $OUTPUT->render($slavecheckbox);
+                            $checkbox .= html_writer::checkbox($checkboxname, $checkboxvalue, '', null,
+                                array('id' => $checkboxid, 'class' => 'm-r-1'));
                         }
                         $userimage = $this->output->user_picture($user, array('courseid' => $roleplays->courseid, 'link' => false));
                         $profileurl = new moodle_url('/user/view.php', array('id' => $user->id, 'course' => $roleplays->courseid));
@@ -479,17 +448,14 @@ class mod_roleplay_renderer extends plugin_renderer_base {
 
         $actiondata = '';
         if ($roleplays->viewresponsecapability && $roleplays->deleterepsonsecapability) {
-            // Build the select/deselect all for all of options.
-            $selectallid = 'select-all-responses';
-            $togglegroup = 'responses';
-            $selectallcheckbox = new \core\output\checkbox_toggleall($togglegroup, true, [
-                'id' => $selectallid,
-                'name' => $selectallid,
-                'value' => 1,
-                'label' => get_string('selectall'),
-                'classes' => 'btn-secondary mr-1'
-            ], true);
-            $actiondata .= $OUTPUT->render($selectallcheckbox);
+            $selecturl = new moodle_url('#');
+
+            $actiondata .= html_writer::start_div('selectallnone');
+            $actiondata .= html_writer::link($selecturl, get_string('selectall'), ['data-select-info' => true]) . ' / ';
+
+            $actiondata .= html_writer::link($selecturl, get_string('deselectall'), ['data-select-info' => false]);
+
+            $actiondata .= html_writer::end_div();
 
             $actionurl = new moodle_url($PAGE->url, array('sesskey'=>sesskey(), 'action'=>'delete_confirmation()'));
             $actionoptions = array('delete' => get_string('delete'));
@@ -498,16 +464,11 @@ class mod_roleplay_renderer extends plugin_renderer_base {
                     $actionoptions['choose_'.$optionid] = get_string('chooseoption', 'roleplay', $option->text);
                 }
             }
-            $selectattributes = [
-                'data-action' => 'toggle',
-                'data-togglegroup' => 'responses',
-                'data-toggle' => 'action',
-            ];
-            $selectnothing = ['' => get_string('chooseaction', 'roleplay')];
-            $select = new single_select($actionurl, 'action', $actionoptions, null, $selectnothing, 'attemptsform');
+            $select = new single_select($actionurl, 'action', $actionoptions, null,
+                array('' => get_string('chooseaction', 'roleplay')), 'attemptsform');
             $select->set_label(get_string('withselected', 'roleplay'));
-            $select->disabled = true;
-            $select->attributes = $selectattributes;
+
+            $PAGE->requires->js_call_amd('mod_roleplay/select_all_choices', 'init');
 
             $actiondata .= $this->output->render($select);
         }
@@ -530,7 +491,7 @@ class mod_roleplay_renderer extends plugin_renderer_base {
     public function display_publish_anonymous_horizontal($roleplays) {
         global $ROLEPLAY_COLUMN_HEIGHT;
         debugging(__FUNCTION__.'() is deprecated. Please use mod_roleplay_renderer::display_publish_anonymous() instead.',
-                DEBUG_DEVELOPER);
+            DEBUG_DEVELOPER);
         return $this->display_publish_anonymous($roleplays, ROLEPLAY_DISPLAY_VERTICAL);
     }
 
@@ -543,7 +504,7 @@ class mod_roleplay_renderer extends plugin_renderer_base {
     public function display_publish_anonymous_vertical($roleplays) {
         global $ROLEPLAY_COLUMN_WIDTH;
         debugging(__FUNCTION__.'() is deprecated. Please use mod_roleplay_renderer::display_publish_anonymous() instead.',
-                DEBUG_DEVELOPER);
+            DEBUG_DEVELOPER);
         return $this->display_publish_anonymous($roleplays, ROLEPLAY_DISPLAY_HORIZONTAL);
     }
 

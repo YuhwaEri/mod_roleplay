@@ -133,8 +133,9 @@ function roleplay_add_instance($roleplay) {
             if (isset($roleplay->limit[$key])) {
                 $option->maxanswers = $roleplay->limit[$key];
             }
-            if (isset($roleplay->description[$key])) {
-                $option->description = $roleplay->description[$key];
+
+            if (isset($roleplay->option_desc[$key])) {
+                $option->option_desc = $roleplay->option_desc[$key];
             }
             $option->timemodified = time();
             $DB->insert_record("roleplay_options", $option);
@@ -176,9 +177,11 @@ function roleplay_update_instance($roleplay) {
         if (isset($roleplay->limit[$key])) {
             $option->maxanswers = $roleplay->limit[$key];
         }
-        if (isset($roleplay->description[$key])) {
-            $option->description = $roleplay->description[$key];
+
+        if (isset($roleplay->option_desc[$key])) {
+            $option->option_desc = $roleplay->option_desc[$key];
         }
+      
         $option->timemodified = time();
         if (isset($roleplay->optionid[$key]) && !empty($roleplay->optionid[$key])){//existing roleplay record
             $option->id=$roleplay->optionid[$key];
@@ -216,7 +219,6 @@ function roleplay_update_instance($roleplay) {
  */
 function roleplay_prepare_options($roleplay, $user, $coursemodule, $allresponses) {
     global $DB;
-
     $cdisplay = array('options'=>array());
 
     $cdisplay['limitanswers'] = true;
@@ -229,8 +231,9 @@ function roleplay_prepare_options($roleplay, $user, $coursemodule, $allresponses
             $option->attributes->value = $optionid;
             $option->text = format_string($text);
             $option->maxanswers = $roleplay->maxanswers[$optionid];
-            $option->description = $roleplay->description[$optionid];
-            $option->displaylayout = $roleplay->display;
+
+            $option->option_desc = $roleplay->option_desc[$optionid];
+          $option->displaylayout = $roleplay->display;
 
             if (isset($allresponses[$optionid])) {
                 $option->countanswers = count($allresponses[$optionid]);
@@ -493,10 +496,6 @@ function roleplay_user_submit_response($formanswer, $comment, $roleplay, $userid
         \mod_roleplay\event\answer_deleted::create_from_object($answer, $roleplay, $cm, $course)->trigger();
     }
     foreach ($answersnapshots as $answer) {
-        // echo "<pre>";
-        // print_r($answer);
-        // echo "</pre>";
-        // die;
         \mod_roleplay\event\answer_created::create_from_object($answer, $roleplay, $cm, $course)->trigger();
     }
 }
@@ -507,6 +506,7 @@ function roleplay_user_submit_response($formanswer, $comment, $roleplay, $userid
  * @return void Output is echo'd
  */
 function roleplay_show_reportlink($user, $cm) {
+
     $userschosen = array();
     foreach($user as $optionid => $userlist) {
         if ($optionid) {
@@ -689,7 +689,8 @@ function roleplay_get_roleplay($roleplayid) {
             foreach ($options as $option) {
                 $roleplay->option[$option->id] = $option->text;
                 $roleplay->maxanswers[$option->id] = $option->maxanswers;
-                $roleplay->description[$option->id] = $option->description;
+
+                $roleplay->option_desc[$option->id] = $option->option_desc;
             }
             return $roleplay;
         }
@@ -809,9 +810,16 @@ function roleplay_get_response_data($roleplay, $cm, $groupmode, $onlyactive) {
 
 /// First get all the users who have access here
 /// To start with we assume they are all "unanswered" then move them later
-    $extrafields = get_extra_user_fields($context);
+
+    //$extrafields = get_extra_user_fields($context);
+    $extrafields = \core_user\fields::for_identity($context)->get_required_fields();
+    // Deprecated version
+    
+    //$allresponses[0] = get_enrolled_users($context, 'mod/roleplay:choose', $currentgroup,
+            //user_picture::fields('u', $extrafields), null, 0, 0, $onlyactive);
+
     $allresponses[0] = get_enrolled_users($context, 'mod/roleplay:choose', $currentgroup,
-            user_picture::fields('u', $extrafields), null, 0, 0, $onlyactive);
+    \core_user\fields::for_userpic()->get_sql('u', false, '', '', false)->selects, null, 0, 0, $onlyactive);
 
 /// Get all the recorded responses for this roleplay
     $rawresponses = $DB->get_records('roleplay_answers', array('roleplayid' => $roleplay->id));

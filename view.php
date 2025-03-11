@@ -109,8 +109,7 @@ if ($notify and confirm_sesskey()) {
     }
 }
 
-
-if (!$roleplayavailable and !$notify) {
+if (!$roleplayavailable && !$notify) {
     $reason = current(array_keys($warnings));
     echo $OUTPUT->notification(get_string($reason, 'roleplay'), 'warning');
 }
@@ -209,9 +208,11 @@ if ( (!$current or $roleplay->allowupdate) and $roleplayopen and is_enrolled($co
 
     // They haven't made their roleplay yet or updates allowed and roleplay is open.
     if ($roleplayavailable) {
+
         $options = roleplay_prepare_options($roleplay, $USER, $cm, $allresponses);
         $renderer = $PAGE->get_renderer('mod_roleplay');
-        echo $renderer->display_options($options, $cm->id, $roleplay->display, $roleplay->allowmultiple, $roleplay->allowcomment);
+        echo $renderer->display_options($options, $cm->id, $roleplay->display, $roleplay->allowmultiple, $roleplay->allowcomment,$roleplay->allowoptiondesc);
+
         $roleplayformshown = true;
     } else {
         $roleplayformshown = false;

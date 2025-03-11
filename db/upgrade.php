@@ -58,17 +58,24 @@ function xmldb_roleplay_upgrade($oldversion) {
     }
 
 
-    if ($oldversion < 2023030700) {
+
+    if ($oldversion < 2023030708) {
+
+        $table = new xmldb_table('roleplay');
+        $field1 = new xmldb_field('allowoptiondesc', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0');
+
+        if (!$dbman->field_exists($table, $field1)) {
+            $dbman->add_field($table, $field1);
+        }
 
         $table = new xmldb_table('roleplay_options');
-        $field = new xmldb_field('description', XMLDB_TYPE_CHAR, '1024', null, null, null, null);
+        $field = new xmldb_field('option_desc', XMLDB_TYPE_TEXT, '4096', null, null, null, null);
 
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
-        upgrade_plugin_savepoint(true, 2023030700, 'mod', 'roleplay');
+        upgrade_plugin_savepoint(true, 2023030708, 'mod', 'roleplay');
     }
-
     return true;
 }

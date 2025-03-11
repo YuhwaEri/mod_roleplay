@@ -228,6 +228,7 @@ class mod_roleplay_external extends external_api {
                 $optionarr['id']            = $option->attributes->value;
                 $optionarr['text']          = external_format_string($option->text, $context->id);
                 $optionarr['maxanswers']    = $option->maxanswers;
+                $optionarr['option_display']    = $option->option_display;
                 $optionarr['displaylayout'] = $option->displaylayout;
                 $optionarr['countanswers']  = $option->countanswers;
                 foreach (array('checked', 'disabled') as $field) {
@@ -273,6 +274,7 @@ class mod_roleplay_external extends external_api {
                             'id' => new external_value(PARAM_INT, 'option id'),
                             'text' => new external_value(PARAM_RAW, 'text of the roleplay'),
                             'maxanswers' => new external_value(PARAM_INT, 'maximum number of answers'),
+                            'option_desc' => new external_value(PARAM_TEXT, 'options description'),
                             'displaylayout' => new external_value(PARAM_BOOL, 'true for orizontal, otherwise vertical'),
                             'countanswers' => new external_value(PARAM_INT, 'number of answers'),
                             'checked' => new external_value(PARAM_BOOL, 'we already answered'),

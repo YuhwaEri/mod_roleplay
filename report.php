@@ -88,7 +88,6 @@
         $eventdata['other']['roleplayid'] = $roleplay->id;
         $event = \mod_roleplay\event\report_downloaded::create($eventdata);
         $event->trigger();
-
     }
 
     // Check if we want to include responses from inactive users.
@@ -96,7 +95,8 @@
 
     $users = roleplay_get_response_data($roleplay, $cm, $groupmode, $onlyactive);
 
-    $extrafields = get_extra_user_fields($context);
+    use core_user\fields;
+    $extrafields = fields::for_identity($context, false)->get_required_fields();
 
     if ($download == "ods" && has_capability('mod/roleplay:downloadresponses', $context)) {
         require_once("$CFG->libdir/odslib.class.php");
